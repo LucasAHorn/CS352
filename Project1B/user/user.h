@@ -47,3 +47,14 @@ void printf(const char*, ...) __attribute__ ((format (printf, 1, 2)));
 // umalloc.c
 void* malloc(uint);
 void free(void*);
+
+
+// added
+struct proc_info {
+  int pid;
+  int ppid;
+  int state;
+  uint64 sz;
+};
+
+int getprocinfo(struct proc_info *info);
