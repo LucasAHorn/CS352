@@ -186,10 +186,9 @@ void            virtio_disk_intr(void);
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
 
 
-// TODO: see if unneeded
-// additions for pt 2:
+// additions for pt 2: (necessairy for linking to user)
 int             blockchild(int);
 int             unblockchild(int);
 
-// additions for pt 3:
+// additions for pt 3: (necessairy for linking to user)
 int             getresourceusage(struct resource_usage *usage);

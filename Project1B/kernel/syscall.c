@@ -131,7 +131,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-[SYS_getprocinfo] sys_getprocinfo,
+[SYS_getprocinfo] sys_getprocinfo,  // added to reference and get called from user space (for the next 3 as well)
 [SYS_blockchild] sys_blockchild,
 [SYS_unblockchild] sys_unblockchild,
 [SYS_getresourceusage] = sys_getresourceusage,
@@ -157,17 +157,17 @@ syscall(void)
 
 // my additions for pt 2: 
 uint64
-sys_blockchild(void)
+sys_blockchild(void)  // call blocking on the child of the current process
 {
   int pid;
-  argint(0, &pid);
-  return blockchild(pid);
+  argint(0, &pid);      // find pid
+  return blockchild(pid); // call block
 }
 
 uint64
-sys_unblockchild(void)
+sys_unblockchild(void)  // call unblock on the child
 {
   int pid;
-  argint(0, &pid);
-  return unblockchild(pid);
+  argint(0, &pid);      // find pid
+  return unblockchild(pid); // call block
 }

@@ -126,7 +126,7 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 .PRECIOUS: %.o
 
 
-# last 3 are my tests
+# last 4 are my tests
 UPROGS=\
 	$U/_cat\
 	$U/_echo\
@@ -149,7 +149,9 @@ UPROGS=\
 	$U/_dorphan\
 	$U/_testprocinfo\
 	$U/_testblock\
-	$U/_testusage
+	$U/_testusage\
+	$U/_testusage2\
+	$U/_testusage3
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

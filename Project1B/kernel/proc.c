@@ -703,67 +703,72 @@ procdump(void)
 }
 
 
-// my additions for pt 2:
+// additions for pt 2: blocking/unblocking child processes
+
 int
 blockchild(int pid)
 {
   struct proc *p;
-  struct proc *cur = myproc();
+  struct proc *cur = myproc(); // get current process (parent)
 
+  // iterate over all processes in the process table
   for(p = proc; p < &proc[NPROC]; p++){
-    acquire(&p->lock);
+    acquire(&p->lock); // acquire process lock before checking/modifying
 
-    if(p->pid == pid){
+    if(p->pid == pid){ // found the target child
+      // validate parent-child relationship and process state
       if(p->parent != cur || p->state == UNUSED || p->state == ZOMBIE){
         release(&p->lock);
-        return -1;
+        return -1; // invalid operation
       }
 
-      if(p->state_extra == BLOCKED){
+      if(p->state_extra == BLOCKED){ // already blocked
         release(&p->lock);
         return -1;
       }
 
-      p->state_extra = BLOCKED;
+      p->state_extra = BLOCKED; // block the child
 
-      release(&p->lock);
-      return 0;
+      release(&p->lock); // release lock after modification
+      return 0; // success
     }
 
-    release(&p->lock);
+    release(&p->lock); // release lock for non-target processes
   }
 
-  return -1;
+  return -1; // child not found
 }
 
 int
 unblockchild(int pid)
 {
   struct proc *p;
-  struct proc *cur = myproc();
+  struct proc *cur = myproc(); // get current process (parent)
 
+  // iterate over all processes in the process table
   for(p = proc; p < &proc[NPROC]; p++){
-    acquire(&p->lock);
+    acquire(&p->lock); // acquire process lock before checking/modifying
 
-    if(p->pid == pid){
+    if(p->pid == pid){ // found the target child
+      // validate parent-child relationship and process state
       if(p->parent != cur || p->state == UNUSED || p->state == ZOMBIE){
         release(&p->lock);
-        return -1;
+        return -1; // invalid operation
       }
 
-      if(p->state_extra != BLOCKED){
+      if(p->state_extra != BLOCKED){ // child not currently blocked
         release(&p->lock);
         return -1;
       }
 
-      p->state_extra = UNBLOCKED;
+      p->state_extra = UNBLOCKED; // unblock the child
 
-      release(&p->lock);
-      return 0;
+      release(&p->lock); // release lock after modification
+      return 0; // success
     }
 
-    release(&p->lock);
+    release(&p->lock); // release lock for non-target processes
   }
 
-  return -1;
+  return -1; // child not found
 }

@@ -126,6 +126,7 @@ struct proc {
   int sleepCount;        // number of times voluntarily slept
 };
 
+// added to store all the resources in one bunch
 struct resource_usage {
   int cpuTicks;
   int syscallCount;

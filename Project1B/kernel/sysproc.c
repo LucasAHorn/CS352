@@ -132,6 +132,7 @@ sys_getprocinfo(void)
 
   argaddr(0, &uaddr);
 
+  // return data to user space
   if(copyout(p->pagetable, uaddr, (char *)&info, sizeof(info)) < 0)
     return -1;
 

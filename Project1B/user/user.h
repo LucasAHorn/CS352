@@ -49,7 +49,7 @@ void* malloc(uint);
 void free(void*);
 
 
-// added
+// added to store values in user space identical to kernel
 struct proc_info {
   int pid;
   int ppid;
@@ -57,15 +57,15 @@ struct proc_info {
   uint64 sz;
 };
 
-// added pt1
+// added pt1 - used for reference
 int getprocinfo(struct proc_info *info);
 
-// added pt2
+// added pt2 - used for refernece
 int blockchild(int pid);
 int unblockchild(int pid);
 
 // added pt3
-
+// added to store vals in user space identical to kernel
 struct resource_usage {
   int cpuTicks;
   int syscallCount;
@@ -73,4 +73,5 @@ struct resource_usage {
   int sleepCount;
 };
 
+// used for reference
 int getresourceusage(struct resource_usage *usage);

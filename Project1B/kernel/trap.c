@@ -52,7 +52,7 @@ usertrap(void)
   p->trapframe->epc = r_sepc();
   
   if(r_scause() == 8){
-    p->syscallCount += 1; // system call
+    p->syscallCount += 1; // system call -> increment ctr
 
     if(killed(p))
       kexit(-1);
@@ -82,7 +82,7 @@ usertrap(void)
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2) {
-    p->cpuTicks += 1;
+    p->cpuTicks += 1; // increment cpu ticks bacause it just used 1 time quantum
     yield();
   }
 
