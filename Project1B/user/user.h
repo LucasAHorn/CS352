@@ -57,4 +57,9 @@ struct proc_info {
   uint64 sz;
 };
 
+// added pt1
 int getprocinfo(struct proc_info *info);
+
+// added pt2
+int blockchild(int pid);
+int unblockchild(int pid);

@@ -103,6 +103,8 @@ extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
 // my additions below
 extern uint64 sys_getprocinfo(void);
+extern uint64 sys_blockchild(void);
+extern uint64 sys_unblockchild(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -129,6 +131,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_getprocinfo] sys_getprocinfo,
+[SYS_blockchild] sys_blockchild,
+[SYS_unblockchild] sys_unblockchild,
 };
 
 void
@@ -147,4 +151,21 @@ syscall(void)
             p->pid, p->name, num);
     p->trapframe->a0 = -1;
   }
+}
+
+// my additions for pt 2: 
+uint64
+sys_blockchild(void)
+{
+  int pid;
+  argint(0, &pid);
+  return blockchild(pid);
+}
+
+uint64
+sys_unblockchild(void)
+{
+  int pid;
+  argint(0, &pid);
+  return unblockchild(pid);
 }

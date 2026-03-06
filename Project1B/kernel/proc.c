@@ -692,3 +692,69 @@ procdump(void)
     printf("\n");
   }
 }
+
+
+// my additions for pt 2:
+int
+blockchild(int pid)
+{
+  struct proc *p;
+  struct proc *cur = myproc();
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+
+    if(p->pid == pid){
+      if(p->parent != cur || p->state == UNUSED || p->state == ZOMBIE){
+        release(&p->lock);
+        return -1;
+      }
+
+      if(p->state_extra == BLOCKED){
+        release(&p->lock);
+        return -1;
+      }
+
+      p->state_extra = BLOCKED;
+
+      release(&p->lock);
+      return 0;
+    }
+
+    release(&p->lock);
+  }
+
+  return -1;
+}
+
+int
+unblockchild(int pid)
+{
+  struct proc *p;
+  struct proc *cur = myproc();
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+
+    if(p->pid == pid){
+      if(p->parent != cur || p->state == UNUSED || p->state == ZOMBIE){
+        release(&p->lock);
+        return -1;
+      }
+
+      if(p->state_extra != BLOCKED){
+        release(&p->lock);
+        return -1;
+      }
+
+      p->state_extra = UNBLOCKED;
+
+      release(&p->lock);
+      return 0;
+    }
+
+    release(&p->lock);
+  }
+
+  return -1;
+}
