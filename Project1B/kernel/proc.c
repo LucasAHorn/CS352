@@ -124,6 +124,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->state_extra = UNBLOCKED;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -169,6 +170,7 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  p->state_extra = UNBLOCKED;   // my change to lift cpu
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -227,6 +229,7 @@ userinit(void)
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
+  p->state_extra = UNBLOCKED; // TODO: check if this has any issues
 
   release(&p->lock);
 }
@@ -300,6 +303,7 @@ kfork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
+  np->state_extra = UNBLOCKED;  // always start as unblocked
   release(&np->lock);
 
   return pid;
@@ -440,7 +444,7 @@ scheduler(void)
     int found = 0;
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
+      if(p->state == RUNNABLE && p->state_extra != BLOCKED) {
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
