@@ -23,3 +23,4 @@
 #define SYS_getprocinfo 22
 #define SYS_blockchild 23
 #define SYS_unblockchild 24
+#define SYS_getresourceusage 25

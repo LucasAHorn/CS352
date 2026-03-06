@@ -109,7 +109,7 @@ sys_uptime(void)
 }
 
 
-// additions:
+// additions part 2:
 uint64
 sys_getprocinfo(void)
 {
@@ -136,4 +136,26 @@ sys_getprocinfo(void)
     return -1;
 
   return 0;
+}
+
+
+// additions for pt 3
+uint64 sys_getresourceusage(void) {
+  struct resource_usage usage;
+  uint64 addr;
+
+  // get user-space pointer
+  argaddr(0, &addr);   // first arg is the pointer to struct
+
+  struct proc *p = myproc();
+  usage.cpuTicks = p->cpuTicks;
+  usage.syscallCount = p->syscallCount;
+  usage.contextSwitches = p->contextSwitches;
+  usage.sleepCount = p->sleepCount;
+
+  // copy to user space
+  if(copyout(p->pagetable, addr, (char *)&usage, sizeof(usage)) < 0)
+    return -1;
+
+  return p->pid;   // return caller PID
 }

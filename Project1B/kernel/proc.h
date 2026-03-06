@@ -125,3 +125,10 @@ struct proc {
   int contextSwitches;   // number of times scheduled to run
   int sleepCount;        // number of times voluntarily slept
 };
+
+struct resource_usage {
+  int cpuTicks;
+  int syscallCount;
+  int contextSwitches;
+  int sleepCount;
+};

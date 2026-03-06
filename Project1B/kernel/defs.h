@@ -8,6 +8,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct resource_usage;
 
 // bio.c
 void            binit(void);
@@ -185,6 +186,10 @@ void            virtio_disk_intr(void);
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
 
 
+// TODO: see if unneeded
 // additions for pt 2:
 int             blockchild(int);
 int             unblockchild(int);
+
+// additions for pt 3:
+int             getresourceusage(struct resource_usage *usage);

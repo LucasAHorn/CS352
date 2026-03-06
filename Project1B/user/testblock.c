@@ -2,7 +2,7 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
-int main(void) {
+int main() {
     int pid = fork();
 
     if (pid < 0) {

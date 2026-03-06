@@ -63,3 +63,14 @@ int getprocinfo(struct proc_info *info);
 // added pt2
 int blockchild(int pid);
 int unblockchild(int pid);
+
+// added pt3
+
+struct resource_usage {
+  int cpuTicks;
+  int syscallCount;
+  int contextSwitches;
+  int sleepCount;
+};
+
+int getresourceusage(struct resource_usage *usage);
