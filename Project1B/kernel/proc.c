@@ -170,7 +170,13 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
-  p->state_extra = UNBLOCKED;   // my change to lift cpu
+  p->state_extra = UNBLOCKED;   // my change to lift cpu for part 2
+
+  // for part 3:
+  p->cpuTicks = 0;
+  p->syscallCount = 0;
+  p->contextSwitches = 0;
+  p->sleepCount = 0;
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -450,7 +456,9 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
-        swtch(&c->context, &p->context);
+
+        p->contextSwitches += 1;          // increment counter
+        swtch(&c->context, &p->context);  // This is the context switch
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
@@ -547,6 +555,7 @@ void
 sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
+  p->sleepCount += 1;
   
   // Must acquire p->lock in order to
   // change p->state and then call sched.

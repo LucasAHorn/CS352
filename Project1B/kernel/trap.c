@@ -52,7 +52,7 @@ usertrap(void)
   p->trapframe->epc = r_sepc();
   
   if(r_scause() == 8){
-    // system call
+    p->syscallCount += 1; // system call
 
     if(killed(p))
       kexit(-1);
@@ -81,8 +81,10 @@ usertrap(void)
     kexit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+    p->cpuTicks += 1;
     yield();
+  }
 
   prepare_return();
 

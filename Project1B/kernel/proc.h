@@ -117,4 +117,11 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  // My additions for part 3:
+  // Add to struct proc
+  int cpuTicks;          // number of timer interrupts while running
+  int syscallCount;      // number of syscalls invoked
+  int contextSwitches;   // number of times scheduled to run
+  int sleepCount;        // number of times voluntarily slept
 };
