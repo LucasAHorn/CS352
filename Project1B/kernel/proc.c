@@ -235,7 +235,7 @@ userinit(void)
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
-  p->state_extra = UNBLOCKED; // TODO: check if this has any issues
+  p->state_extra = UNBLOCKED;   // remove potential block so that this can function
 
   release(&p->lock);
 }
@@ -555,7 +555,7 @@ void
 sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
-  p->sleepCount += 1;
+  p->sleepCount += 1;       // increment amount of times slept
   
   // Must acquire p->lock in order to
   // change p->state and then call sched.
@@ -591,7 +591,7 @@ wakeup(void *chan)
   for(p = proc; p < &proc[NPROC]; p++) {
     if(p != myproc()){
       acquire(&p->lock);
-      if(p->state == SLEEPING && p->chan == chan) {
+      if(p->state == SLEEPING && p->chan == chan && p->state_extra != BLOCKED) {
         p->state = RUNNABLE;
       }
       release(&p->lock);
@@ -717,7 +717,8 @@ blockchild(int pid)
 
     if(p->pid == pid){ // found the target child
       // validate parent-child relationship and process state
-      if(p->parent != cur || p->state == UNUSED || p->state == ZOMBIE){
+      // reject UNUSED (not allocated), USED (still initializing), and ZOMBIE (already exited)
+      if(p->parent != cur || p->state == UNUSED || p->state == USED || p->state == ZOMBIE){
         release(&p->lock);
         return -1; // invalid operation
       }
@@ -751,7 +752,8 @@ unblockchild(int pid)
 
     if(p->pid == pid){ // found the target child
       // validate parent-child relationship and process state
-      if(p->parent != cur || p->state == UNUSED || p->state == ZOMBIE){
+      // reject UNUSED (not allocated), USED (still initializing), and ZOMBIE (already exited)
+      if(p->parent != cur || p->state == UNUSED || p->state == USED || p->state == ZOMBIE){
         release(&p->lock);
         return -1; // invalid operation
       }

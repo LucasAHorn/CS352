@@ -151,7 +151,8 @@ UPROGS=\
 	$U/_testblock\
 	$U/_testusage\
 	$U/_testusage2\
-	$U/_testusage3
+	$U/_testusage3\
+	$U/_procmon
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
