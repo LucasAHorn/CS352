@@ -1,126 +1,106 @@
-xv6 Project 1B: Process Info, Blocking, and Resource Usage System Calls
-======================================================================
+Name: Lucas Horn
 
-MODIFIED FILES
+xv6 Project 1B - Process Info, Blocking, and Resource Usage
+=============================================================
+
+Modified files
 --------------
-  kernel/proc.h      - Added struct proc_info, struct resource_usage,
-                       enum procstate_extra (BLOCKED/UNBLOCKED), and new
-                       per-process counter fields in struct proc.
-
-  kernel/proc.c      - Initialized new fields in freeproc() and allocproc().
-                       Modified scheduler() to skip BLOCKED processes.
-                       Added sleepCount increment in sleep().
-                       Added contextSwitches increment in scheduler().
-                       Implemented blockchild() and unblockchild() at end of file.
-
-  kernel/trap.c      - Added syscallCount increment in usertrap() when a
-                       system call is detected (r_scause() == 8).
-                       Added cpuTicks increment in usertrap() when a timer
-                       interrupt fires (which_dev == 2).
-
-  kernel/syscall.h   - Added system call numbers:
-                         SYS_getprocinfo     = 22
-                         SYS_blockchild      = 23
-                         SYS_unblockchild    = 24
-                         SYS_getresourceusage = 25
-
-  kernel/syscall.c   - Declared extern handlers for all four new syscalls.
-                       Registered them in the syscalls[] dispatch table.
-                       Implemented sys_blockchild() and sys_unblockchild()
-                       wrappers (arg extraction + kernel function call).
-
-  kernel/sysproc.c   - Implemented sys_getprocinfo(): fills proc_info struct
-                       from current process's PCB and copies to user space.
-                       Implemented sys_getresourceusage(): copies resource
-                       counters from PCB to user space, returns caller's PID.
-
-  kernel/defs.h      - Added forward declaration for struct resource_usage.
-                       Declared blockchild(), unblockchild(), and
-                       getresourceusage() for cross-file linkage.
-
-  user/usys.pl       - Added entry() calls for getprocinfo, blockchild,
-                       unblockchild, and getresourceusage to generate
-                       the assembly stubs that invoke the ecall instruction.
-
-  user/user.h        - Added struct proc_info and struct resource_usage
-                       definitions (must match kernel-side exactly).
-                       Added declarations for all four new system calls.
+  kernel/proc.h
+  kernel/proc.c
+  kernel/trap.c
+  kernel/syscall.h
+  kernel/syscall.c
+  kernel/sysproc.c
+  kernel/defs.h
+  user/usys.pl
+  user/user.h
 
 
-DESIGN CHOICES
---------------
+Description of changes
+----------------------
 
-Task 1 – getprocinfo
-  The proc_info structure is defined in both kernel/proc.h and user/user.h
-  with identical layout so that copyout() transfers the data correctly.
-  The system call simply reads fields directly from myproc() (the calling
-  process's PCB) with no locking needed for its own fields, since a process
-  cannot race with itself. The parent PID is read under the assumption that
-  wait_lock is not required here because we only read p->parent->pid
-  (a stable integer) and the project runs with CPUS=1.
+Task 1 - getprocinfo:
+  Added sys_getprocinfo() in kernel/sysproc.c. It calls myproc() to get the
+  current process, fills a local proc_info struct with p->pid, p->parent->pid,
+  p->state, and p->sz, then uses copyout() to send it to user space. If
+  p->parent is null it just sets ppid to 0.
 
-Task 2 – blockchild / unblockchild
-  Rather than introducing a new main process state (which would require
-  changes throughout the scheduler and sleep/wakeup paths), a secondary
-  field state_extra (enum procstate_extra) was added to struct proc.
-  This keeps the change minimal and isolated: only the scheduler loop in
-  scheduler() needs a one-line guard to skip processes where
-  state_extra == BLOCKED.
+  struct proc_info is defined in both kernel/proc.h and user/user.h with the
+  same layout so copyout() transfers it correctly. No locking needed since a
+  process cant race with its own syscall, and we're running CPUS=1.
 
-  Both blockchild() and unblockchild() are placed at the end of proc.c
-  because they need direct access to the global proc[] array. Each acquires
-  the target process's spinlock before reading or modifying state, following
-  standard xv6 locking conventions. The functions reject:
-    - Processes that are not direct children of the caller
-    - UNUSED or ZOMBIE processes (cannot be meaningfully blocked)
-    - Double-block or double-unblock requests (idempotency avoided by design,
-      per spec: these should return -1)
+  Wired it up in kernel/syscall.h (SYS_getprocinfo = 22), declared the extern
+  and added it to the syscalls[] table in kernel/syscall.c, and added the
+  entry in user/usys.pl plus the declaration in user/user.h.
 
-  A blocked process that is SLEEPING will eventually wake up (via wakeup())
-  and transition to RUNNABLE, but the scheduler will not dispatch it until
-  unblockchild() clears the BLOCKED flag. This is intentional: the block
-  acts as a scheduling gate, not a sleep mechanism.
+Task 2 - blockchild / unblockchild:
+  Rather than adding a new value to the main procstate enum and touching
+  everything that checks it, I added a separate state_extra field to struct
+  proc in kernel/proc.h using a new enum procstate_extra with values BLOCKED
+  and UNBLOCKED. Its initialized to UNBLOCKED in both proc.c:allocproc() and
+  proc.c:freeproc().
 
-Task 3 – getresourceusage
-  Four counters are stored directly in struct proc and zeroed in freeproc():
-    cpuTicks        – incremented in usertrap() on each timer interrupt
-                      (which_dev == 2) while the process is in user mode.
-    syscallCount    – incremented in usertrap() each time r_scause() == 8,
-                      before syscall() is dispatched.
-    contextSwitches – incremented in scheduler() immediately before swtch(),
-                      counting each time the process is given the CPU.
-    sleepCount      – incremented at the top of sleep(), before the process
-                      changes state, counting voluntary sleeps only.
+  The scheduler in proc.c:scheduler() just got one extra condition - it skips
+  any process where state_extra == BLOCKED, everything else stays the same.
 
-  getresourceusage() copies these four values into a user-space struct and
-  returns the caller's PID, matching the specification.
+  I also updated proc.c:wakeup() to not transition a BLOCKED process from
+  SLEEPING to RUNNABLE. Without this, a sleeping child that gets blocked could
+  get woken up by an unrelated wakeup() call, and then when you unblock it
+  theres no wakeup coming to actually get it running again.
+
+  blockchild() and unblockchild() are at the bottom of kernel/proc.c since
+  they need direct access to the proc[] array. Both scan the table, grab
+  p->lock, verify the target is a direct child of the caller and is in a
+  valid state (not UNUSED, USED, or ZOMBIE), then flip state_extra. Trying
+  to double-block or double-unblock returns -1.
+
+  sys_blockchild() and sys_unblockchild() wrappers are in kernel/syscall.c,
+  they just call argint() to get the pid argument then call blockchild() or
+  unblockchild(). Syscall numbers SYS_blockchild = 23 and
+  SYS_unblockchild = 24 added to kernel/syscall.h.
+
+Task 3 - getresourceusage:
+  Added 4 counter fields to struct proc in kernel/proc.h: cpuTicks,
+  syscallCount, contextSwitches, sleepCount. All zeroed in proc.c:freeproc().
+
+  Where each one gets incremented:
+    - cpuTicks: in trap.c:usertrap() when which_dev == 2 (timer interrupt)
+    - syscallCount: in trap.c:usertrap() when r_scause() == 8 (syscall),
+      incremented before syscall() is dispatched
+    - contextSwitches: in proc.c:scheduler() right before the swtch() call,
+      after the process is selected and set to RUNNING
+    - sleepCount: at the top of proc.c:sleep(), before acquire(&p->lock)
+
+  sys_getresourceusage() is in kernel/sysproc.c. It calls myproc(), copies
+  the 4 counter fields into a local resource_usage struct, uses copyout() to
+  send it to user space, and returns p->pid. struct resource_usage is defined
+  in both kernel/proc.h and user/user.h. Syscall number SYS_getresourceusage
+  = 25 in kernel/syscall.h.
 
 
-KNOWN LIMITATIONS
+Testing
+-------
+  Used user/procmon.c (provided with the assignment) to test all three tasks
+  together. It forks a child that prints every 5 ticks, blocks it, waits 10
+  ticks to confirm the child goes silent, then unblocks it. After that the
+  parent runs a heavy workload to drive up the resource counters and prints
+  the final getresourceusage() output. Also used it to verify getprocinfo()
+  returns correct pid, ppid, state, and memory size at the start.
+
+  Some output lines had parent and child printf mixed together (like
+  "ParenChild (4): running...") which is just xv6 having no stdout locking,
+  not a bug.
+
+
+Known limitations
 -----------------
-  1. CPUS=1 assumed throughout. No additional locking was added around the
-     new counter increments (cpuTicks, syscallCount, etc.) because with a
-     single CPU, only one process runs at a time and no concurrent updates
-     are possible. On a multi-CPU build these would be data races.
+  - Everything assumes CPUS=1 per the project instructions. The counter
+    increments arent atomic so this would break on multiple CPUs.
 
-  2. blockchild() does not force a sleeping child out of sleep. If a child
-     is blocked while it is in the SLEEPING state, it will eventually wake
-     and transition to RUNNABLE, but then be held at the scheduler gate. A
-     blocked-while-sleeping child will not print or execute user code, but
-     it will consume a slot in the wakeup scan.
+  - syscallCount is incremented before syscall() runs so it counts the
+    invocation regardless of whether it succeeds. Seemed like the right
+    interpretation of "each invocation counts once".
 
-  3. struct proc_info and struct resource_usage are duplicated between
-     kernel/proc.h and user/user.h. If either definition changes, both must
-     be updated manually. xv6 has no shared include mechanism between kernel
-     and user space.
-
-  4. syscallCount is incremented in usertrap() before syscall() runs, so it
-     counts every system call invocation including failed or invalid ones.
-     This matches the spec ("each invocation counts once"), but means the
-     counter reflects dispatch attempts, not successful completions.
-
-  5. contextSwitches counts scheduler selections, not preemptions. A process
-     preempted by a timer interrupt is yielded back to RUNNABLE and re-
-     selected on the next scheduling round, so one preemption results in two
-     contextSwitches increments (the selection before the preemption, and the
-     re-selection afterward).
+  - proc_info and resource_usage are defined in both kernel/proc.h and
+    user/user.h. If one changes the other has to be updated manually, thats
+    just how xv6 handles the kernel/user split.
